@@ -14,6 +14,7 @@ function Game({ players, room, orientation, cleanup }) {
     (move) => {
         try{
             const result = chess.move(move);
+            console.log("Move: ",move,result)
             setFen(chess.fen());
 
             console.log("over, checkmate", chess.isGameOver(),chess.isCheckmate());
