@@ -10,5 +10,6 @@
 
 ### Steps for running locally
 
-1. Run ```npm install``` in order to install all necessary modules.
-2. Run ```npm run start``` in order to run the web application.
+1. Navigate to the ```frontend``` folder.
+2. Run ```npm install``` in order to install all necessary modules.
+3. Run ```npm run start``` in order to run the web application.
