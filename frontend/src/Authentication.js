@@ -12,7 +12,7 @@ import {getAuth} from 'firebase/auth';
 import {app} from './index';
 import { GoogleAuthProvider } from 'firebase/auth'
 //import { signInWithGoogle } from './index'
-import {createUserWithEmailAndPassword,signInWithEmailAndPassword} from 'firebase/auth'
+import {createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged} from 'firebase/auth'
 import React from 'react';
 import {Tab} from '@mui/material';
 import {TabContext,TabList,TabPanel} from '@mui/lab';
@@ -134,6 +134,17 @@ function Login({email,setEmail})
 
 export function Authentication()
 {
+    const auth = getAuth();
+    React.useEffect(()=>
+    {
+        onAuthStateChanged(auth,(user)=>
+        {
+            if(user)
+            {
+                window.location.href="/game"
+            }
+        })
+    })
     const {enqueueSnackbar} = useSnackbar();
     const showSnackbar = (message,variant) =>
     {

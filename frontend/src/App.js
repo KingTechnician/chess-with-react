@@ -20,7 +20,7 @@ import {createTheme, ThemeProvider, styled} from '@mui/material/styles'
 
 import {createBrowserRouter,RouterProvider} from 'react-router-dom'
 import{useGoogleOneTapLogin} from 'react-google-one-tap-login'
-import{getAuth, onAuthStateChanged} from 'firebase/auth'
+import{getAuth, onAuthStateChanged,getIdToken} from 'firebase/auth'
 import {useEffect,useState} from 'react'
 import LogoutIcon from '@mui/icons-material/Logout';
 import {doc,setDoc} from 'firebase/firestore';
@@ -108,14 +108,39 @@ export function TopAppBar()
 
 function App()
 {
+  const [apiPath,setApiPath] = useState("http://127.0.0.1:5000")
   const {enqueueSnackbar} = useSnackbar();
   const showSnackbar = (message,variant) =>
   {
     enqueueSnackbar(message,{variant});
   }
   const auth = getAuth();
+  const startNewGame = () =>
+  {
+    onAuthStateChanged(auth,async (user)=>
+    {
+      if(user)
+      {
+        var idToken = await getIdToken(user);
+        fetch(apiPath+"/newgame",
+        {
+          method:"post",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({idToken:idToken})
+        })
+        .then((response)=>response.json())
+        .then((data)=>{
+          console.log(data)
+          showSnackbar("Successful command","success")
+        })
+        .catch((error)=>{showSnackbar(error.message,"error")});
+      }
+    })
+    
+  }
   useEffect(()=>
   {
+    startNewGame();
     onAuthStateChanged(auth,(user)=>
     {
       if(user)
@@ -134,14 +159,13 @@ function App()
             showSnackbar(error.message,"error")
           })
         }
-        addToDocument();
       }
       else
       {
         window.location.href="/"
       }
     })
-  })
+  },[startNewGame,onAuthStateChanged,auth,showSnackbar])
   return(
     <ThemeProvider theme={theme}>
     <TopAppBar/>
