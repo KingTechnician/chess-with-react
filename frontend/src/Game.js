@@ -53,6 +53,7 @@ function Game({ players, room, orientation, cleanup }) {
 
   const makeAMove = useCallback(
     (move) => {
+      console.log(move)
         try{
             const result = chess.move(move);
             console.log("Move: ",move,result)

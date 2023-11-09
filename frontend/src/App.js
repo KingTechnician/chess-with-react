@@ -17,8 +17,11 @@ import InboxIcon from '@mui/icons-material/Inbox'
 import List from '@mui/material/List'
 import {createTheme, ThemeProvider, styled} from '@mui/material/styles'
 
+import {createBrowserRouter,RouterProvider} from 'react-router-dom'
+import{useGoogleOneTapLogin} from 'react-google-one-tap-login'
 
-const theme = createTheme({
+
+export const theme = createTheme({
   palette: {
     type: 'light',
     primary: {
@@ -83,8 +86,10 @@ export function TopAppBar()
   )
 }
 
+
 function App()
 {
+  
   return(
     <ThemeProvider theme={theme}>
     <TopAppBar/>
@@ -94,5 +99,7 @@ function App()
     </ThemeProvider>
   )
 }
+
+
 
 export default App;

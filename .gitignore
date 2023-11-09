@@ -5,6 +5,9 @@ frontend/node_modules
 /.pnp
 .pnp.js
 
+#Virtual environment
+backend/venv
+
 # testing
 /coverage
 

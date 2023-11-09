@@ -1,5 +1,7 @@
 from flask import Flask
 from flask_restful import Resource,Api
+import firebase_admin
+firebase_app = firebase_admin.initialize_app()
 
 app = Flask(__name__)
 
