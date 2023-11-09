@@ -5,13 +5,15 @@ import App from './App';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import reportWebVitals from './reportWebVitals';
 import {createBrowserRouter,RouterProvider} from 'react-router-dom';
-import {Login} from './Login';
+import {Authentication} from './Authentication';
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import {getAuth} from 'firebase/auth';
 import { GoogleAuthProvider } from 'firebase/auth';
-import {signInWithPopup} from 'firebase/auth'
+import {signInWithPopup,signInWithRedirect,signInWithEmailLink} from 'firebase/auth'
+import {SnackbarProvider} from  'notistack';
+import {getFirestore} from 'firebase/firestore';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -25,23 +27,25 @@ const firebaseConfig = {
   messagingSenderId: "713986025716",
   appId: "1:713986025716:web:bb92432a790de7cf64d6a1",
   measurementId: "G-HNRRTYXFRY"
-};
+  }
 
 // Initialize Firebase
-initializeApp(firebaseConfig);
+const app  = initializeApp(firebaseConfig);
 
+export const db = getFirestore(app)
+/*
 const auth = getAuth();
 
 const provider = new GoogleAuthProvider();
 
 provider.setCustomParameters({prompt:"select_account"})
 
-export const signInWithGoogle = () => signInWithPopup(auth,provider);
-
+export const signInWithGoogle = async () => await signInWithPopup(auth,provider);
+*/
 const router = createBrowserRouter([
   {
     path:'/',
-    element:<Login/>
+    element:<Authentication/>
   },
   {
     path:'/game',
@@ -52,7 +56,9 @@ const router = createBrowserRouter([
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <RouterProvider router = {router}/>
+    <SnackbarProvider maxSnack={3}>
+      <RouterProvider router = {router}/>
+    </SnackbarProvider>
   </React.StrictMode>
 );
 

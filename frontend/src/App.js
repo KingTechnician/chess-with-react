@@ -14,11 +14,18 @@ import ListItem from '@mui/material/ListItem'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
 import InboxIcon from '@mui/icons-material/Inbox'
+import GamepadIcon from '@mui/icons-material/Gamepad';
 import List from '@mui/material/List'
 import {createTheme, ThemeProvider, styled} from '@mui/material/styles'
 
 import {createBrowserRouter,RouterProvider} from 'react-router-dom'
 import{useGoogleOneTapLogin} from 'react-google-one-tap-login'
+import{getAuth, onAuthStateChanged} from 'firebase/auth'
+import {useEffect,useState} from 'react'
+import LogoutIcon from '@mui/icons-material/Logout';
+import {doc,setDoc} from 'firebase/firestore';
+import {db} from './index'
+import {useSnackbar} from 'notistack';
 
 
 export const theme = createTheme({
@@ -37,6 +44,12 @@ export const theme = createTheme({
 export function MainDrawer(props) {
   return (
     <Drawer
+      PaperProps={{
+        sx:{
+          backgroundColor:theme.palette.primary.main,
+          color:theme.palette.primary.contrastText,
+        }
+      }}
       anchor="left"
       open={props.open}
       onClose={() => props.setOpen(false)}
@@ -52,9 +65,15 @@ export function MainDrawer(props) {
       >
         <ListItem button sx={{ padding: 2 }}>
           <ListItemIcon sx={{ minWidth: 45, justifyContent: 'center' }}>
-            <InboxIcon />
+            <GamepadIcon />
           </ListItemIcon>
-          <ListItemText primary="Inbox" />
+          <ListItemText primary="Start a New Game" />
+        </ListItem>
+        <ListItem button sx={{padding:2}}>
+          <ListItemIcon sx={{minWidth:45,justifyContent:'center'}}>
+            <LogoutIcon/>
+          </ListItemIcon>
+          <ListItemText  primary = "Logout"/>
         </ListItem>
       </List>
     </Drawer>
@@ -67,7 +86,7 @@ export function TopAppBar()
   const [open,setOpen] = React.useState(false);
   return(
     <AppBar position = "static">
-      <MainDrawer open={open} setOpen={setOpen}/>
+      <MainDrawer  open={open} setOpen={setOpen}/>
       <Toolbar>
         <IconButton
           size="large"
@@ -89,7 +108,40 @@ export function TopAppBar()
 
 function App()
 {
-  
+  const {enqueueSnackbar} = useSnackbar();
+  const showSnackbar = (message,variant) =>
+  {
+    enqueueSnackbar(message,{variant});
+  }
+  const auth = getAuth();
+  useEffect(()=>
+  {
+    onAuthStateChanged(auth,(user)=>
+    {
+      if(user)
+      {
+        const cityRef = doc(db,"users",user.uid);
+        const addToDocument = async() => {await setDoc(cityRef,
+          {
+            email:user.email,
+            name:"This is a test",
+            photoURL:"This is some random phone number."
+          }).then(()=>
+          {
+            showSnackbar("Database posting successful!","success")
+          }).catch((error)=>
+          {
+            showSnackbar(error.message,"error")
+          })
+        }
+        addToDocument();
+      }
+      else
+      {
+        window.location.href="/"
+      }
+    })
+  })
   return(
     <ThemeProvider theme={theme}>
     <TopAppBar/>
