@@ -12,15 +12,37 @@ import {getAuth} from 'firebase/auth';
 import {app} from './index';
 import { GoogleAuthProvider } from 'firebase/auth'
 //import { signInWithGoogle } from './index'
-import {createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged} from 'firebase/auth'
+import {createUserWithEmailAndPassword,signInWithEmailAndPassword,onAuthStateChanged,signInWithPopup} from 'firebase/auth'
 import React from 'react';
 import {Tab} from '@mui/material';
 import {TabContext,TabList,TabPanel} from '@mui/lab';
 import{SnackbarProvider,useSnackbar} from 'notistack';
 import {useEffect} from 'react';
+import {Credentials} from './Credentials'
 
+function createAuthorizationUrl()
+{
+  let scopes = ["https://www.googleapis.com/auth/datastore","https://www.googleapis.com/auth/userninfo.profile"]
+  let includeGrantedScopes = true
+  let responseType = "code"
+  let redirectUri = "http://localhost:3000"
+  let clientId = "308179806090-c19u99kj24h04oeemaqcgkfkka9khpmc.apps.googleusercontent.com"
+  let scope = scopes.join("%20")
+  let url = "https://accounts.google.com/o/oauth2/v2/auth?" +
+            "scope=" + scope + "&" +
+            "include_granted_scopes=" + includeGrantedScopes + "&" +
+            "response_type=" + responseType + "&" +
+            "redirect_uri=" + redirectUri + "&" +
+            "client_id=" + clientId + "&" +
+            "access_type=online"
+  return url
+  
+}
 
-
+function logInAndGetToken()
+{
+  window.open(createAuthorizationUrl(),'_blank');
+}
 
 
 function SignUp({email,setEmail})
@@ -87,6 +109,7 @@ function SignUp({email,setEmail})
 
 function Login({email,setEmail})
 {
+
     const {enqueueSnackbar} = useSnackbar();
     const showSnackbar = (message,variant) =>
     {
@@ -124,6 +147,26 @@ function Login({email,setEmail})
                             }}>
                             Login
                         </Button>
+                        <GoogleButton onClick={()=>
+                            {
+                                const auth = getAuth();
+                                const provider = new GoogleAuthProvider();
+                                //Add Firebase scope
+                                provider.addScope("https://www.googleapis.com/auth/datastore");
+                                provider.addScope("https://www.googleapis.com/auth/userinfo.profile");
+                                //Be sure that the redirect URI is localhost:3000
+                                provider.setCustomParameters({prompt:"select_account"});
+                                signInWithPopup(auth,provider).then((result)=>
+                                {
+                                    console.log(result);
+                                    showSnackbar("Login successful!","success");
+                                    window.location.href = "/game";
+                                })
+                                .catch((error)=>
+                                {
+                                    showSnackbar(error.message,"error");
+                                })
+                            }} />
                     </Grid>
                 </Grid>
             </Container>

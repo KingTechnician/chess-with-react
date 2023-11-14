@@ -17,7 +17,7 @@ import InboxIcon from '@mui/icons-material/Inbox'
 import GamepadIcon from '@mui/icons-material/Gamepad';
 import List from '@mui/material/List'
 import {createTheme, ThemeProvider, styled} from '@mui/material/styles'
-
+import{Divider} from '@mui/material'
 import {createBrowserRouter,RouterProvider} from 'react-router-dom'
 import{useGoogleOneTapLogin} from 'react-google-one-tap-login'
 import{getAuth, onAuthStateChanged,getIdToken} from 'firebase/auth'
@@ -26,8 +26,18 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import {doc,setDoc} from 'firebase/firestore';
 import {db} from './index'
 import {useSnackbar} from 'notistack';
-
-
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import Avatar from '@mui/material/Avatar';
+import {Dialog} from '@mui/material';
+import {Button} from '@mui/material';
+import {Slide} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogActions from '@mui/material/DialogActions';
+import MenuItem from '@mui/material/MenuItem';
+import {Select} from '@mui/material';
 export const theme = createTheme({
   palette: {
     type: 'light',
@@ -42,6 +52,21 @@ export const theme = createTheme({
 
 
 export function MainDrawer(props) {
+  const [name,setName] = useState("");
+  const [photo,setPhoto] = useState("")
+  const [dialogOpen,setDialogOpen] = useState(false);
+  const [newGameOpen, setNewGameOpen] = useState(false);
+  useEffect(()=>
+  {
+    onAuthStateChanged(getAuth(),(user)=>
+    {
+      if(user)
+      {
+        setName(user.displayName);
+        setPhoto(user.photoURL);
+      }
+    })
+  })
   return (
     <Drawer
       PaperProps={{
@@ -56,6 +81,8 @@ export function MainDrawer(props) {
       onOpen={() => props.setOpen(true)}
       sx={{ '& .MuiDrawer-paper': { width: 250, padding: 2 } }}
     >
+      <Avatar alt={name} src={photo} sx={{width:100,height:100,margin:2}}/>
+      <Typography variant = "h4" sx={{padding:2}}>{name}</Typography>
       <List
         sx={{
           width: '100%',
@@ -63,11 +90,17 @@ export function MainDrawer(props) {
           padding: 1,
         }}
       >
-        <ListItem button sx={{ padding: 2 }}>
+        <ListItem onClick = {()=>{setNewGameOpen(true)}} button sx={{ padding: 2 }}>
           <ListItemIcon sx={{ minWidth: 45, justifyContent: 'center' }}>
             <GamepadIcon />
           </ListItemIcon>
           <ListItemText primary="Start a New Game" />
+        </ListItem>
+        <ListItem onClick={()=>{setDialogOpen(true)}} button sx={{padding:2}}>
+          <ListItemIcon sx={{minWidth:45,justifyContent:'center'}}>
+            <MenuBookIcon/>
+          </ListItemIcon>
+          <ListItemText primary = "Current Games"/>
         </ListItem>
         <ListItem button sx={{padding:2}}>
           <ListItemIcon sx={{minWidth:45,justifyContent:'center'}}>
@@ -75,6 +108,8 @@ export function MainDrawer(props) {
           </ListItemIcon>
           <ListItemText  primary = "Logout"/>
         </ListItem>
+        <NewGameDialog open={newGameOpen} setOpen={setNewGameOpen}/>
+        <GameViewDialog open={dialogOpen} setOpen={setDialogOpen}/>
       </List>
     </Drawer>
   );
@@ -82,7 +117,6 @@ export function MainDrawer(props) {
 
 export function TopAppBar()
 {
-
   const [open,setOpen] = React.useState(false);
   return(
     <AppBar position = "static">
@@ -102,6 +136,117 @@ export function TopAppBar()
         </Typography>
       </Toolbar>
     </AppBar>
+  )
+}
+
+
+function GameViewDialog(props)
+{
+  const [newGameOpen , setNewGameOpen] = useState(false);
+  const handleClickOpen = () =>{
+    props.setOpen(true);
+  }
+  const handleClose = () =>{
+    props.setOpen(false);
+  }
+  return (
+      <Dialog
+        fullScreen
+        open={props.open}
+        onClose={handleClose}
+      >
+        <AppBar sx={{ position: 'relative' }}>
+          <Toolbar>
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={handleClose}
+              aria-label="close"
+            >
+              <CloseIcon />
+            </IconButton>
+            <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
+              Current Games
+            </Typography>
+            <Button onClick={()=>{setNewGameOpen(true)}} autoFocus color="inherit">
+              Start a New Game
+            </Button>
+            <NewGameDialog open={newGameOpen} setOpen={setNewGameOpen}/>
+          </Toolbar>
+        </AppBar>
+        <List>
+          <ListItem button>
+            <ListItemText primary="Phone ringtone" secondary="Titania" />
+          </ListItem>
+          <Divider />
+          <ListItem button>
+            <ListItemText
+              primary="Chess game at November 13, 2023"
+              secondary="Game ID: 43534645674657"
+            />
+          </ListItem>
+        </List>
+      </Dialog>
+  );
+}
+
+//Create component that is a modal with two dropdowns and a submit button
+
+function NewGameDialog(props)
+{
+  const handleClickOpen = () =>{
+    props.setOpen(true);
+  }
+  const handleClose = () =>{
+    props.setOpen(false);
+  }
+  const [type,setType] = useState("");
+  const [difficulty,setDifficulty] = useState("");
+  const [computerChosen,setComputerChosen] = useState(false);
+  return(
+    <div>
+      <Button variant="outlined" onClick={handleClickOpen}>
+        Open dialog
+      </Button>
+      <Dialog open={props.open} onClose={handleClose}>
+        <DialogTitle>Create a New Game</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <DialogContentText>
+                Select the type of game you want to play
+              </DialogContentText>
+            </Grid>
+            <Grid item xs={12}>
+              <Select fullWidth value={type} onChange={(i)=>
+                {
+                  setType(i.target.value);
+                  setComputerChosen(i.target.value==="VS. CPU");
+                }}>
+                <MenuItem value="VS. CPU">VS. CPU</MenuItem>
+                <MenuItem value="VS. Player">VS. Player</MenuItem>
+              </Select>
+            </Grid>
+            <Grid item xs={12}>
+              <DialogContentText>
+                Select the difficulty of the CPU
+              </DialogContentText>
+            </Grid>
+            <Grid item xs={12}>
+              <Select disabled={!computerChosen} fullWidth value={difficulty} onChange={(i)=>{setDifficulty(i.target.value)}}>
+                <MenuItem value="Easy">Easy</MenuItem>
+                <MenuItem value="Medium">Medium</MenuItem>
+                <MenuItem value="Hard">Hard</MenuItem>
+              </Select>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleClose}>Create</Button>
+        </DialogActions>
+      </Dialog>
+    </div>
   )
 }
 
@@ -141,31 +286,20 @@ function App()
   useEffect(()=>
   {
     startNewGame();
+    console.log("But this one will happen only once.")
     onAuthStateChanged(auth,(user)=>
     {
       if(user)
       {
         const cityRef = doc(db,"users",user.uid);
-        const addToDocument = async() => {await setDoc(cityRef,
-          {
-            email:user.email,
-            name:"This is a test",
-            photoURL:"This is some random phone number."
-          }).then(()=>
-          {
-            showSnackbar("Database posting successful!","success")
-          }).catch((error)=>
-          {
-            showSnackbar(error.message,"error")
-          })
-        }
+        console.log("This should happen only once.")
       }
       else
       {
         window.location.href="/"
       }
     })
-  },[startNewGame,onAuthStateChanged,auth,showSnackbar])
+  },[])
   return(
     <ThemeProvider theme={theme}>
     <TopAppBar/>

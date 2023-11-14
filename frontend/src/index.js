@@ -14,6 +14,7 @@ import { GoogleAuthProvider } from 'firebase/auth';
 import {signInWithPopup,signInWithRedirect,signInWithEmailLink} from 'firebase/auth'
 import {SnackbarProvider} from  'notistack';
 import {getFirestore} from 'firebase/firestore';
+import {getMessaging,getToken,onMessage} from 'firebase/messaging';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -31,6 +32,43 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app  = initializeApp(firebaseConfig);
+
+const messaging = getMessaging(app);
+
+
+function requestPermission()
+{
+  console.log("Requesting permission...");
+  window.Notification.requestPermission().then((permission)=>
+  {
+    if(permission === 'granted')
+    {
+      console.log("Notification permission granted.")
+    }
+  })
+  .catch((error)=>
+  {
+    console.log("An error occurred while requesting permission. ",error)
+  })
+}
+
+getToken(messaging,{vapidKey:"BNuYufbWK1bTXYUCT4PjphWaurSMD7T70-J5NvXZWmsfpAusCtRCLYryWP3pUIunwq9t3YXMqrNFL15oF7t-d0E"})
+.then((currentToken)=>
+{
+  if(currentToken)
+  {
+    console.log("Token: ",currentToken)
+  }
+  else
+  {
+    requestPermission()
+  }
+})
+.catch((err)=>
+{
+  console.log("An error occurred while retrieving token. ",err);
+  requestPermission()
+})
 
 export const db = getFirestore(app)
 /*
@@ -55,11 +93,9 @@ const router = createBrowserRouter([
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
     <SnackbarProvider maxSnack={3}>
       <RouterProvider router = {router}/>
     </SnackbarProvider>
-  </React.StrictMode>
 );
 
 // If you want your app to work offline and load faster, you can change

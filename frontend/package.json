@@ -13,6 +13,7 @@
     "@testing-library/user-event": "^13.5.0",
     "chess.js": "^1.0.0-beta.6",
     "firebase": "^10.5.2",
+    "googleapis": "^126.0.1",
     "langchain": "^0.0.182-rc.1",
     "notistack": "^3.0.1",
     "react": "^18.2.0",
