@@ -139,16 +139,79 @@ export function TopAppBar()
   )
 }
 
+function GamesDisplay(props)
+{
+  const games = props.games;
+  console.log(games)
+  if(games.length==0)
+  {
+    return(
+      <Typography variant="h6" component="div" sx={{flexGrow:1}}>
+        No games found. Create a new one above!
+      </Typography>
+    )
+  }
+  else
+  {
+    return(
+      <List>
+      {games.map((game)=>
+      {
+        return(
+          <ListItem onClick={()=>
+          {
+            window.location.href = window.location.origin+`/game?id=${game.game_id}`
+          }} button>
+            <ListItemText
+              primary="Chess game"
+              secondary={`Game ID: ${game.game_id}   Difficulty: ${game.difficulty}`}
+            />
+          </ListItem>
+        )
+      })}
+      </List>
+    )
+  }
+}
 
 function GameViewDialog(props)
 {
+  const [apiPath,setApiPath ] = useState("http://127.0.0.1:5000")
   const [newGameOpen , setNewGameOpen] = useState(false);
+  const [currentGames,setCurrentGames] = useState([])
   const handleClickOpen = () =>{
     props.setOpen(true);
   }
   const handleClose = () =>{
     props.setOpen(false);
   }
+  const handleGames = (games)=>
+  {
+    setCurrentGames(games)
+  }
+
+  useEffect(()=>
+  {
+    onAuthStateChanged(getAuth(),async (user)=>
+    {
+      if(user)
+      {
+        const idToken = await user.getIdToken();
+        fetch(apiPath+"/listgames",
+        {
+          method:"post",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({idToken:idToken})
+        }).then((response)=>response.json())
+        .then((data)=>
+        {
+          handleGames(data.games)
+        })
+        .catch((error)=>console.log(error))
+      }
+    })
+    //Pull from the Firestore database the current games
+  },[setCurrentGames])
   return (
       <Dialog
         fullScreen
@@ -174,18 +237,7 @@ function GameViewDialog(props)
             <NewGameDialog open={newGameOpen} setOpen={setNewGameOpen}/>
           </Toolbar>
         </AppBar>
-        <List>
-          <ListItem button>
-            <ListItemText primary="Phone ringtone" secondary="Titania" />
-          </ListItem>
-          <Divider />
-          <ListItem button>
-            <ListItemText
-              primary="Chess game at November 13, 2023"
-              secondary="Game ID: 43534645674657"
-            />
-          </ListItem>
-        </List>
+        <GamesDisplay games={currentGames}/>
       </Dialog>
   );
 }
@@ -313,13 +365,11 @@ function App()
   const auth = getAuth();
   useEffect(()=>
   {
-    console.log("But this one will happen only once.")
     onAuthStateChanged(auth,(user)=>
     {
       if(user)
       {
         const cityRef = doc(db,"users",user.uid);
-        console.log("This should happen only once.")
       }
       else
       {

@@ -64,8 +64,72 @@ class NewGame(Resource):
             return {"error":"An error as occurred"},404
     
 
+class GetSpecificGame(Resource):
+    def post(self):
+        json_data = request.get_json(force=True)
+        token = json_data['idToken']
+        try:
+            decoded_token = auth.verify_id_token(token)
+            email = decoded_token["uid"]
+            uid_hash = hashlib.sha256(email.encode()).hexdigest()
+            game_id = json_data['game_id']
+            game = db.collection("users").document(email).collection("games").document(game_id).get()
+            game_data = game.to_dict()
+            game_data["id"] = game.id
+            return game_data,200
+        except Exception as e:
+            print(e)
+            return {"error":"An error as occurred"},404
+        
+class StoreMove(Resource):
+    def post(self):
+        json_data = request.get_json(force=True)
+        token = json_data['idToken']
+        try:
+            decoded_token = auth.verify_id_token(token)
+            email = decoded_token["uid"]
+            uid_hash = hashlib.sha256(email.encode()).hexdigest()
+            game_id = json_data['game_id']
+            current_board = json_data['currentBoard']
+            # Grab the game, add to the turns array, and update the number of moves
+            # Use Firebase to update the turns field and the number_of_moves field
+            get_current_game = db.collection("users").document(email).collection("games").document(game_id).get()
+            current_game = get_current_game.to_dict()
+            game_ref = db.collection("users").document(email).collection("games").document(game_id)
+            game_ref.update({
+                "turns": current_game["turns"] + [current_board],
+                "number_of_moves": firestore.Increment(1)
+            })
+            return {"success":"Move stored"},200
+        except Exception as e:
+            print(e)
+            return {"error":"An error as occurred"},404 
+
+class ListGames(Resource):
+    def post(self):
+        json_data = request.get_json(force=True)
+        token = json_data['idToken']
+        try:
+            decoded_token = auth.verify_id_token(token)
+            email = decoded_token["uid"]
+            uid_hash = hashlib.sha256(email.encode()).hexdigest()
+            games = db.collection("users").document(email).collection("games").where("uid_hash","==",uid_hash).get()
+            games_list = []
+            for game in games:
+                game_data = game.to_dict()
+                game_data["id"] = game.id
+                games_list.append(game_data)
+            return {"games":games_list},200
+        except Exception as e:
+            print(e)
+            return {"error":"An error as occurred"},404
+
+
 api.add_resource(HelloWorld,'/')
 api.add_resource(NewGame,"/newaigame")
+api.add_resource(ListGames,"/listgames")
+api.add_resource(GetSpecificGame,"/specificgame")
+api.add_resource(StoreMove,"/move")
 
 @app.after_request
 def after_request(response):

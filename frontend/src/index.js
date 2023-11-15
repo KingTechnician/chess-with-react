@@ -66,7 +66,6 @@ getToken(messaging,{vapidKey:"BNuYufbWK1bTXYUCT4PjphWaurSMD7T70-J5NvXZWmsfpAusCt
 })
 .catch((err)=>
 {
-  console.log("An error occurred while retrieving token. ",err);
   requestPermission()
 })
 

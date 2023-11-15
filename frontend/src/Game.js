@@ -2,7 +2,9 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess } from "chess.js";
 import CustomDialog from "./components/CustomDialog";
-
+import{onAuthStateChanged,getAuth} from 'firebase/auth';
+import{useSearchParams} from 'react-router-dom';
+import {useSnackbar} from 'notistack';
 function fenToBoard(fen) {
   const parts = fen.split(' ')[0]; // get only the pieces part of the FEN
   const ranks = parts.split('/');
@@ -43,13 +45,70 @@ function countPiecesFromFEN(fen) {
 
 
 function Game({ players, room, orientation, cleanup }) {
-  const chess = useMemo(() => new Chess(), []); // <- 1
+  
+  const [apiPath,setApiPath] = useState("http://127.0.0.1.:5000")
+  const [searchParams,setSearchParams] = useSearchParams();
+  const {enqueueSnackbar} = useSnackbar();
+  const [currentGame, setCurrentGame] = useState({});
+  const showSnackbar = (message,variant)=>
+  {
+    enqueueSnackbar(message,{variant:variant})
+  }
+  useEffect(()=>
+  {
+    
+    var chessToMake = undefined
+    onAuthStateChanged(getAuth(),async (user)=>
+    {
+      const gameId = searchParams.get("id");
+      console.log(gameId)
+      const idToken = await user.getIdToken();
+      fetch(apiPath+"/specificgame",
+      {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({idToken:idToken,game_id:gameId})
+      })
+      .then((response)=>response.json())
+      .then((data)=>
+      {
+        console.log(data)
+        //Get last move from turns
+        //Set fen to last move
+        if(data!==undefined && data.turns!==undefined)
+        {
+        var lastTurn = data.turns[data.turns.length-1]
+        console.log(lastTurn)
+        setCurrentGame(data)
+        chessToMake = new Chess(lastTurn)
+        }
+      })
+      .catch((error)=>
+      {
+        return new Chess()
+      })
+    })
+    console.log(chessToMake)
+  },[])
+  const [chess,setChess] = useState(new Chess()); // <- 1
+  useEffect(()=>
+  {
+    console.log(currentGame)
+    if(Object.keys(currentGame).length === 0)
+    {
+      console.log("Not loading yet")
+    }
+    else
+    {
+      var lastTurn = currentGame.turns[currentGame.turns.length-1]
+      setFen(lastTurn)
+      setChess(new Chess(lastTurn))
+    }
+  },[currentGame])
   const [fen, setFen] = useState(chess.fen()); // <- 2
   const [over, setOver] = useState("");
   const pieceCounts = useMemo(() => countPiecesFromFEN(fen), [fen]);
-
   // onDrop function
-
   const makeAMove = useCallback(
     (move) => {
       console.log(move)
@@ -95,8 +154,27 @@ function Game({ players, room, orientation, cleanup }) {
     }
 
     const move = makeAMove(moveData);
-
+    console.log(moveData)
     if (move===null) return false;
+    else
+    {
+      onAuthStateChanged(getAuth(),async(user)=>
+      {
+        const idToken = await user.getIdToken();
+        const gameId = searchParams.get("id");
+        const currentBoard = chess.fen();
+        console.log(currentBoard)
+        fetch(apiPath+"/move",
+        {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({idToken:idToken,game_id:gameId,currentBoard:currentBoard})
+        })
+        .then((response)=>response.json())
+        .then((data)=>{showSnackbar("Move stored.")})
+        .catch((error)=>showSnackbar("Either there is an error or the backend has not been set up yet.","error"))
+      })
+    }
 
     return true;
   } // <- 3
