@@ -46,7 +46,6 @@ function Game({ players, room, orientation, cleanup }) {
   const chess = useMemo(() => new Chess(), []); // <- 1
   const [fen, setFen] = useState(chess.fen()); // <- 2
   const [over, setOver] = useState("");
-
   const pieceCounts = useMemo(() => countPiecesFromFEN(fen), [fen]);
 
   // onDrop function

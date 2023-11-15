@@ -194,15 +194,66 @@ function GameViewDialog(props)
 
 function NewGameDialog(props)
 {
+  const {enqueueSnackbar} = useSnackbar()
+  const showSnackbar = (message,variant) =>
+  {
+    enqueueSnackbar(message,{variant});
+  }
   const handleClickOpen = () =>{
     props.setOpen(true);
   }
   const handleClose = () =>{
     props.setOpen(false);
   }
+  const [apiPath,setApiPath] = useState("http://127.0.0.1:5000")
   const [type,setType] = useState("");
   const [difficulty,setDifficulty] = useState("");
   const [computerChosen,setComputerChosen] = useState(false);
+  const auth = getAuth();
+  const startNewGame = () =>
+  {
+    console.log(computerChosen)
+    if(type=="VS. Player")
+    {
+      console.log("This is not ready yet.")
+      showSnackbar("Multiplayer not yet supported","warning")
+    }
+    else
+    {
+      onAuthStateChanged(auth,async (user)=>
+      {
+        if(user)
+        {
+          if(type!=="" && difficulty!=="")
+          {
+            var idToken = await getIdToken(user);
+            fetch(apiPath+"/newaigame",
+            {
+              method:"post",
+              headers:{"Content-Type":"application/json"},
+              body:JSON.stringify({idToken:idToken,difficulty:difficulty})
+            })
+            .then((response)=>response.json())
+            .then((data)=>{
+              console.log(data)
+              if(data.id!==undefined)
+              {
+                window.location.href = window.location.origin+`/game?id=${data.id}`
+              }
+              showSnackbar("Successful command","success")
+            })
+            .catch((error)=>{showSnackbar(error.message,"error")});
+          }
+          else
+          {
+            showSnackbar("One or more fields are empty.","warning")
+          }
+        }
+      })
+    }
+    handleClose();
+    
+  }
   return(
     <div>
       <Button variant="outlined" onClick={handleClickOpen}>
@@ -243,7 +294,7 @@ function NewGameDialog(props)
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleClose}>Create</Button>
+          <Button onClick={startNewGame}>Create</Button>
         </DialogActions>
       </Dialog>
     </div>
@@ -253,39 +304,15 @@ function NewGameDialog(props)
 
 function App()
 {
-  const [apiPath,setApiPath] = useState("http://127.0.0.1:5000")
+  const [apiPath,setApiPath] = useState("http://localhost:3000")
   const {enqueueSnackbar} = useSnackbar();
   const showSnackbar = (message,variant) =>
   {
     enqueueSnackbar(message,{variant});
   }
   const auth = getAuth();
-  const startNewGame = () =>
-  {
-    onAuthStateChanged(auth,async (user)=>
-    {
-      if(user)
-      {
-        var idToken = await getIdToken(user);
-        fetch(apiPath+"/newgame",
-        {
-          method:"post",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({idToken:idToken})
-        })
-        .then((response)=>response.json())
-        .then((data)=>{
-          console.log(data)
-          showSnackbar("Successful command","success")
-        })
-        .catch((error)=>{showSnackbar(error.message,"error")});
-      }
-    })
-    
-  }
   useEffect(()=>
   {
-    startNewGame();
     console.log("But this one will happen only once.")
     onAuthStateChanged(auth,(user)=>
     {
