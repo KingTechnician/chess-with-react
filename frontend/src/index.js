@@ -38,12 +38,10 @@ const messaging = getMessaging(app);
 
 function requestPermission()
 {
-  console.log("Requesting permission...");
   window.Notification.requestPermission().then((permission)=>
   {
     if(permission === 'granted')
     {
-      console.log("Notification permission granted.")
     }
   })
   .catch((error)=>

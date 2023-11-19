@@ -5,6 +5,8 @@ import CustomDialog from "./components/CustomDialog";
 import{onAuthStateChanged,getAuth} from 'firebase/auth';
 import{useSearchParams} from 'react-router-dom';
 import {useSnackbar} from 'notistack';
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
 function fenToBoard(fen) {
   const parts = fen.split(' ')[0]; // get only the pieces part of the FEN
   const ranks = parts.split('/');
@@ -44,9 +46,7 @@ function countPiecesFromFEN(fen) {
 }
 
 
-function Game({ players, room, orientation, cleanup }) {
-  
-  const [apiPath,setApiPath] = useState("http://127.0.0.1.:5000")
+function Game({ players, room, orientation, cleanup,apiPath }) {
   const [searchParams,setSearchParams] = useSearchParams();
   const {enqueueSnackbar} = useSnackbar();
   const [currentGame, setCurrentGame] = useState({});
@@ -61,7 +61,6 @@ function Game({ players, room, orientation, cleanup }) {
     onAuthStateChanged(getAuth(),async (user)=>
     {
       const gameId = searchParams.get("id");
-      console.log(gameId)
       const idToken = await user.getIdToken();
       fetch(apiPath+"/specificgame",
       {
@@ -72,13 +71,11 @@ function Game({ players, room, orientation, cleanup }) {
       .then((response)=>response.json())
       .then((data)=>
       {
-        console.log(data)
         //Get last move from turns
         //Set fen to last move
         if(data!==undefined && data.turns!==undefined)
         {
         var lastTurn = data.turns[data.turns.length-1]
-        console.log(lastTurn)
         setCurrentGame(data)
         chessToMake = new Chess(lastTurn)
         }
@@ -88,19 +85,19 @@ function Game({ players, room, orientation, cleanup }) {
         return new Chess()
       })
     })
-    console.log(chessToMake)
   },[])
   const [chess,setChess] = useState(new Chess()); // <- 1
   useEffect(()=>
   {
-    console.log(currentGame)
     if(Object.keys(currentGame).length === 0)
     {
       console.log("Not loading yet")
     }
     else
     {
-      var lastTurn = currentGame.turns[currentGame.turns.length-1]
+      //Filter currentGame.turns only get moves that contain 'w'
+      var turns = currentGame.turns.filter((turn)=>turn.includes("w"))
+      var lastTurn = turns[turns.length-1]
       setFen(lastTurn)
       setChess(new Chess(lastTurn))
     }
@@ -108,18 +105,14 @@ function Game({ players, room, orientation, cleanup }) {
   const [fen, setFen] = useState(chess.fen()); // <- 2
   const [over, setOver] = useState("");
   const pieceCounts = useMemo(() => countPiecesFromFEN(fen), [fen]);
+  const [aiLoading,setAILoading] = useState(false);
+  const [lastBoard,setLastBoard] = useState("")
   // onDrop function
   const makeAMove = useCallback(
     (move) => {
-      console.log(move)
         try{
             const result = chess.move(move);
-            console.log("Move: ",move,result)
             setFen(chess.fen());
-            console.log(chess.fen())
-            console.log(countPiecesFromFEN(chess.fen()))
-
-            console.log("over, checkmate", chess.isGameOver(),chess.isCheckmate());
 
             if(chess.isGameOver())
             {
@@ -152,28 +145,69 @@ function Game({ players, room, orientation, cleanup }) {
         color: chess.turn()
 
     }
-
+    setLastBoard(chess.fen())
     const move = makeAMove(moveData);
-    console.log(moveData)
     if (move===null) return false;
     else
     {
+      setAILoading(true)
       onAuthStateChanged(getAuth(),async(user)=>
       {
         const idToken = await user.getIdToken();
         const gameId = searchParams.get("id");
         const currentBoard = chess.fen();
-        console.log(currentBoard)
-        fetch(apiPath+"/move",
-        {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({idToken:idToken,game_id:gameId,currentBoard:currentBoard})
+        var currentTurn = chess.turn()
+        showSnackbar("Getting response...")
+        var successfulMove = null;
+          fetch(apiPath+"/move",
+          {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({idToken:idToken,game_id:gameId,currentBoard:currentBoard,lastMove:lastBoard})
+          })
+          .then((response)=>response.json())
+          .then((data)=>
+          {
+            console.log(data)
+            var move = data.move.split(",")
+            const aiMove = {
+              from: move[0],
+              to: move[1],
+              color: chess.turn()
+            }
+            successfulMove = makeAMove(aiMove)
+            showSnackbar("Move stored.")
+          })
+          .catch((error)=>showSnackbar("Either there is an error or the backend has not been set up yet.","error"))
+          .finally(()=>
+          {
+            if(successfulMove===null)
+            {
+              showSnackbar("Invalid move.","error")
+              fetch(apiPath+"/move",
+              {
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({idToken:idToken,game_id:gameId,currentBoard:currentBoard,lastMove:lastBoard,validMove:false})
+              })
+              .then((response)=>response.json())
+              .then((data)=>
+              {
+                console.log(data)
+                var move = data.move.split(",")
+                const aiMove = {
+                  from: move[0],
+                  to: move[1],
+                  color: chess.turn()
+                }
+                successfulMove = makeAMove(aiMove)
+                showSnackbar("Move stored.")
+              })
+            }
+            setAILoading(false)
+          })
         })
-        .then((response)=>response.json())
-        .then((data)=>{showSnackbar("Move stored.")})
-        .catch((error)=>showSnackbar("Either there is an error or the backend has not been set up yet.","error"))
-      })
+      setAILoading(false)
     }
 
     return true;
@@ -190,7 +224,13 @@ function Game({ players, room, orientation, cleanup }) {
       </div>
 
       <div className="board">
-        <Chessboard position={fen} onPieceDrop={onDrop} />
+        <Chessboard arePiecesDraggable={!aiLoading}  position={fen} onPieceDrop={onDrop} />
+        <Backdrop
+          style={{position:'absolute',zIndex:1}}
+          open={aiLoading}
+          >
+            <CircularProgress color="inherit"/>
+          </Backdrop>
       </div>
 
       <div className="pieces-display">

@@ -5,6 +5,26 @@ from flask_cors import CORS
 from firebase_admin import auth, firestore,credentials
 import random
 import hashlib
+from dotenv import load_dotenv
+from langchain.prompts import ChatPromptTemplate,PromptTemplate
+from langchain.prompts.chat import SystemMessage,HumanMessagePromptTemplate
+from langchain.chat_models import ChatOpenAI
+from langchain.llms import OpenAI
+from langchain.chains import ConversationChain
+import openai
+import os
+load_dotenv()
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+initial_prompt = open("prompt.txt","r").read()
+
+
+prompt = PromptTemplate(input_variables=["history","input"],template=initial_prompt)
+
+llm = ChatOpenAI(temperature = 0, model_name="gpt-4-1106-preview")
+
+conversation  = ConversationChain(prompt=prompt,llm=llm)
 
 def create_random_game_id():
     game_id = ""
@@ -23,6 +43,10 @@ db = firestore.client()
 
 app = Flask(__name__)
 
+
+def queryAI(fen,history):
+    response = conversation.predict(history=history,input=fen)
+    return response
 
 parser = reqparse.RequestParser()
 
@@ -91,19 +115,49 @@ class StoreMove(Resource):
             uid_hash = hashlib.sha256(email.encode()).hexdigest()
             game_id = json_data['game_id']
             current_board = json_data['currentBoard']
+            last_move = json_data["lastMove"]
             # Grab the game, add to the turns array, and update the number of moves
             # Use Firebase to update the turns field and the number_of_moves field
             get_current_game = db.collection("users").document(email).collection("games").document(game_id).get()
             current_game = get_current_game.to_dict()
+            if(last_move != ""):
+                current_game["turns"].append(last_move)
+            print(current_board)
+            ai_move = ""
+            #Check if string has a comma
+            while ("," not in ai_move):
+                ai_move = queryAI(current_board,[current_game["turns"][-1]])
             game_ref = db.collection("users").document(email).collection("games").document(game_id)
             game_ref.update({
-                "turns": current_game["turns"] + [current_board],
+                "turns": current_game["turns"] + ([last_move,current_board] if last_move != "" else [current_board]),
                 "number_of_moves": firestore.Increment(1)
             })
-            return {"success":"Move stored"},200
+            return {"move":ai_move},200
         except Exception as e:
             print(e)
-            return {"error":"An error as occurred"},404 
+            return {"error":"An error as occurred"},404
+        
+class StoreLastMove(Resource):
+    def post(self):
+        json_data = request.get_json(force=True)
+        token = json_data['idToken']
+        try:
+            decoded_token = auth.verify_id_token(token)
+            email = decoded_token["uid"]
+            game_id = json_data['game_id']
+            last_move = json_data['lastMove']
+            print(f"Last move: {last_move}")
+            get_current_game = db.collection("users").document(email).collection("games").document(game_id).get()
+            current_game = get_current_game.to_dict()
+            game_id = json_data['game_id']
+            game_ref = db.collection("users").document(email).collection("games").document(game_id)
+            game_ref.update({
+                "turns": current_game["turns"] + [last_move],
+            })
+            return {"response":"success"},200
+        except Exception as e:
+            print(e)
+            return {"error":"An error as occurred"},404
 
 class ListGames(Resource):
     def post(self):
@@ -130,6 +184,9 @@ api.add_resource(NewGame,"/newaigame")
 api.add_resource(ListGames,"/listgames")
 api.add_resource(GetSpecificGame,"/specificgame")
 api.add_resource(StoreMove,"/move")
+
+#Legacy - works, but no longer used
+api.add_resource(StoreLastMove,"/lastmove")
 
 @app.after_request
 def after_request(response):

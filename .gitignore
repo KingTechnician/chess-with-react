@@ -22,6 +22,11 @@ frontend/src/Credentials.js
 .env.test.local
 .env.production.local
 
+frontend/firebase.json
+frontend/.firebaserc
+frontend/.env
+backend/serviceAccountKey.json
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

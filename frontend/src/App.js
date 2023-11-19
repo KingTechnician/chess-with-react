@@ -108,19 +108,19 @@ export function MainDrawer(props) {
           </ListItemIcon>
           <ListItemText  primary = "Logout"/>
         </ListItem>
-        <NewGameDialog open={newGameOpen} setOpen={setNewGameOpen}/>
-        <GameViewDialog open={dialogOpen} setOpen={setDialogOpen}/>
+        <NewGameDialog apiPath={props.apiPath} open={newGameOpen} setOpen={setNewGameOpen}/>
+        <GameViewDialog apiPath={props.apiPath} open={dialogOpen} setOpen={setDialogOpen}/>
       </List>
     </Drawer>
   );
 }
 
-export function TopAppBar()
+export function TopAppBar(props)
 {
   const [open,setOpen] = React.useState(false);
   return(
     <AppBar position = "static">
-      <MainDrawer  open={open} setOpen={setOpen}/>
+      <MainDrawer apiPath={props.apiPath} open={open} setOpen={setOpen}/>
       <Toolbar>
         <IconButton
           size="large"
@@ -176,9 +176,9 @@ function GamesDisplay(props)
 
 function GameViewDialog(props)
 {
-  const [apiPath,setApiPath ] = useState("http://127.0.0.1:5000")
   const [newGameOpen , setNewGameOpen] = useState(false);
   const [currentGames,setCurrentGames] = useState([])
+  const [apiPath,setApiPath] = useState("https://still-plains-33852-e5b4371a22fb.herokuapp.com")
   const handleClickOpen = () =>{
     props.setOpen(true);
   }
@@ -246,6 +246,7 @@ function GameViewDialog(props)
 
 function NewGameDialog(props)
 {
+  const[apiPath,setApiPath] = useState("https://still-plains-33852-e5b4371a22fb.herokuapp.com")
   const {enqueueSnackbar} = useSnackbar()
   const showSnackbar = (message,variant) =>
   {
@@ -257,7 +258,6 @@ function NewGameDialog(props)
   const handleClose = () =>{
     props.setOpen(false);
   }
-  const [apiPath,setApiPath] = useState("http://127.0.0.1:5000")
   const [type,setType] = useState("");
   const [difficulty,setDifficulty] = useState("");
   const [computerChosen,setComputerChosen] = useState(false);
@@ -356,7 +356,7 @@ function NewGameDialog(props)
 
 function App()
 {
-  const [apiPath,setApiPath] = useState("http://localhost:3000")
+  const [apiPath,setApiPath] = useState("https://still-plains-33852-e5b4371a22fb.herokuapp.com")
   const {enqueueSnackbar} = useSnackbar();
   const showSnackbar = (message,variant) =>
   {
@@ -379,9 +379,9 @@ function App()
   },[])
   return(
     <ThemeProvider theme={theme}>
-    <TopAppBar/>
+    <TopAppBar apiPath={apiPath}/>
     <Container maxWidth = "md">
-      <Game/>
+      <Game apiPath={apiPath}/>
     </Container>
     </ThemeProvider>
   )
