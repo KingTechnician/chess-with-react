@@ -19,3 +19,7 @@
 
 - Frontend folder: Contains the React application for the frontend.
 - Backend folder: Contains the REST API for a mixture of data integration and OpenAI chat instances.
+
+
+https://github.com/KingTechnician/chess-with-react/assets/104329626/ddf11182-f0a6-485e-8662-32c7cdd3af56
+
