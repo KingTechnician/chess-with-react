@@ -102,7 +102,21 @@ export function MainDrawer(props) {
           </ListItemIcon>
           <ListItemText primary = "Current Games"/>
         </ListItem>
-        <ListItem button sx={{padding:2}}>
+        <ListItem onClick={()=>
+          {
+            const confirmation = window.confirm("Are you sure you want to log out?")
+            if(confirmation)
+            {
+              const auth = getAuth();
+              onAuthStateChanged(auth,(user)=>
+              {
+                if(user)
+                {
+                  auth.signOut();
+                }
+              })
+            }
+          }} button sx={{padding:2}}>
           <ListItemIcon sx={{minWidth:45,justifyContent:'center'}}>
             <LogoutIcon/>
           </ListItemIcon>
