@@ -4,7 +4,7 @@
 
 - Isaiah Freeman
 - LaQuawne DePriest
-- Christian Mills
+- Joshua Washington
 - Christopher Parham
 
 
